@@ -14,6 +14,7 @@ COUNCIL_MODELS = [
     "google/gemini-3-pro-preview",
     "anthropic/claude-opus-4.5",
     "x-ai/grok-4",
+    "moonshotai/kimi-k2-thinking",
 ]
 
 # Chairman model - synthesizes final response
