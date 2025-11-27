@@ -1,16 +1,21 @@
-import { useState, useEffect } from 'react';
 import './Sidebar.css';
+import ThemeToggle from './ThemeToggle';
 
 export default function Sidebar({
   conversations,
   currentConversationId,
   onSelectConversation,
   onNewConversation,
+  theme,
+  onToggleTheme,
 }) {
   return (
     <div className="sidebar">
       <div className="sidebar-header">
-        <h1>LLM Council</h1>
+        <div className="sidebar-title-row">
+          <h1>LLM Council</h1>
+          <ThemeToggle theme={theme} onToggle={onToggleTheme} />
+        </div>
         <button className="new-conversation-btn" onClick={onNewConversation}>
           + New Conversation
         </button>

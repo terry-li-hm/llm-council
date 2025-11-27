@@ -1,9 +1,10 @@
 .followup-response {
-  background: #f8f9ff;
-  border: 1px solid #d0d8f0;
+  background: var(--followup-bg);
+  border: 1px solid var(--followup-border);
   border-radius: 8px;
   padding: 16px;
   margin-top: 8px;
+  transition: background-color 0.2s, border-color 0.2s;
 }
 
 .followup-header {
@@ -14,8 +15,8 @@
 }
 
 .followup-badge {
-  background: #e8eeff;
-  color: #4a5a9a;
+  background: var(--followup-badge-bg);
+  color: var(--followup-badge-text);
   font-size: 11px;
   font-weight: 600;
   padding: 3px 8px;
@@ -25,40 +26,41 @@
 }
 
 .followup-model {
-  color: #6a7ab0;
+  color: var(--followup-model);
   font-size: 12px;
   font-family: monospace;
 }
 
 .followup-text {
-  color: #333;
+  color: var(--text-primary);
   line-height: 1.7;
   font-size: 15px;
 }
 
 .followup-response .thinking-section {
   margin-bottom: 16px;
-  border: 1px solid #e0e0e0;
+  border: 1px solid var(--border-primary);
   border-radius: 4px;
-  background: #fafafa;
+  background: var(--thinking-bg);
+  transition: background-color 0.2s, border-color 0.2s;
 }
 
 .followup-response .thinking-section summary {
   padding: 8px 12px;
   cursor: pointer;
-  color: #666;
+  color: var(--text-secondary);
   font-size: 13px;
   user-select: none;
 }
 
 .followup-response .thinking-section summary:hover {
-  background: #f0f0f0;
+  background: var(--bg-hover);
 }
 
 .followup-response .thinking-content {
   padding: 12px;
-  border-top: 1px solid #e0e0e0;
-  background: #fff;
-  color: #555;
+  border-top: 1px solid var(--border-primary);
+  background: var(--thinking-content-bg);
+  color: var(--thinking-text);
   font-size: 14px;
 }

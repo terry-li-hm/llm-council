@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import Sidebar from './components/Sidebar';
 import ChatInterface from './components/ChatInterface';
 import { api } from './api';
+import { useTheme } from './utils/useTheme';
 import './App.css';
 
 function App() {
@@ -9,6 +10,7 @@ function App() {
   const [currentConversationId, setCurrentConversationId] = useState(null);
   const [currentConversation, setCurrentConversation] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
+  const { theme, toggleTheme } = useTheme();
 
   // Load conversations on mount
   useEffect(() => {
@@ -213,6 +215,8 @@ function App() {
         currentConversationId={currentConversationId}
         onSelectConversation={handleSelectConversation}
         onNewConversation={handleNewConversation}
+        theme={theme}
+        onToggleTheme={toggleTheme}
       />
       <ChatInterface
         conversation={currentConversation}
