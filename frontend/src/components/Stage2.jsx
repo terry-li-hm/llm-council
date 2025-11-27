@@ -1,31 +1,19 @@
 import { useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import './Stage2.css';
+import { extractReasoningText } from '../utils/reasoning';
 
 function deAnonymizeText(text, labelToModel) {
   if (!labelToModel) return text;
 
   let result = text;
   // Replace each "Response X" with the actual model name
+  // Using string split/join to avoid regex issues with special characters
   Object.entries(labelToModel).forEach(([label, model]) => {
     const modelShortName = model.split('/')[1] || model;
-    result = result.replace(new RegExp(label, 'g'), `**${modelShortName}**`);
+    result = result.split(label).join(`**${modelShortName}**`);
   });
   return result;
-}
-
-// Extract readable text from reasoning_details array
-function extractReasoningText(reasoningDetails) {
-  if (!reasoningDetails || !Array.isArray(reasoningDetails)) {
-    return null;
-  }
-
-  // Filter for text-based reasoning and extract the text
-  const textParts = reasoningDetails
-    .filter(detail => detail.type === 'reasoning.text' && detail.text)
-    .map(detail => detail.text);
-
-  return textParts.length > 0 ? textParts.join('\n\n') : null;
 }
 
 export default function Stage2({ rankings, labelToModel, aggregateRankings }) {

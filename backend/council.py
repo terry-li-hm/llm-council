@@ -1,8 +1,11 @@
 """3-stage LLM Council orchestration."""
 
+import logging
 from typing import List, Dict, Any, Tuple
 from .openrouter import query_models_parallel, query_model
 from .config import COUNCIL_MODELS, CHAIRMAN_MODEL, THINKING_CONFIG
+
+logger = logging.getLogger(__name__)
 
 
 def _thinking_enabled_for_stage(stage: str) -> bool:
@@ -195,7 +198,7 @@ Provide a clear, well-reasoned final answer that represents the council's collec
         )
         if response is not None:
             break
-        print(f"Chairman query attempt {attempt + 1} failed, retrying...")
+        logger.warning(f"Chairman query attempt {attempt + 1} failed, retrying...")
 
     if response is None:
         # Fallback if chairman fails after retries

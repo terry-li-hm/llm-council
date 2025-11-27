@@ -1,18 +1,6 @@
 import ReactMarkdown from 'react-markdown';
 import './FollowupResponse.css';
-
-// Extract readable text from reasoning_details array
-function extractReasoningText(reasoningDetails) {
-  if (!reasoningDetails || !Array.isArray(reasoningDetails)) {
-    return null;
-  }
-
-  const textParts = reasoningDetails
-    .filter(detail => detail.type === 'reasoning.text' && detail.text)
-    .map(detail => detail.text);
-
-  return textParts.length > 0 ? textParts.join('\n\n') : null;
-}
+import { extractReasoningText } from '../utils/reasoning';
 
 export default function FollowupResponse({ response }) {
   if (!response) {
