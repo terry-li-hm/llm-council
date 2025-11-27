@@ -2,7 +2,15 @@
 
 from typing import List, Dict, Any, Tuple
 from .openrouter import query_models_parallel, query_model
-from .config import COUNCIL_MODELS, CHAIRMAN_MODEL
+from .config import COUNCIL_MODELS, CHAIRMAN_MODEL, THINKING_CONFIG
+
+
+def _thinking_enabled_for_stage(stage: str) -> bool:
+    """Check if thinking is enabled for a specific stage."""
+    return (
+        THINKING_CONFIG.get("enabled", False) and
+        THINKING_CONFIG.get("stages", {}).get(stage, False)
+    )
 
 
 async def stage1_collect_responses(user_query: str) -> List[Dict[str, Any]]:
@@ -13,21 +21,30 @@ async def stage1_collect_responses(user_query: str) -> List[Dict[str, Any]]:
         user_query: The user's question
 
     Returns:
-        List of dicts with 'model' and 'response' keys
+        List of dicts with 'model', 'response', and optional 'thinking' keys
     """
     messages = [{"role": "user", "content": user_query}]
 
     # Query all models in parallel
-    responses = await query_models_parallel(COUNCIL_MODELS, messages)
+    enable_thinking = _thinking_enabled_for_stage("stage1")
+    responses = await query_models_parallel(
+        COUNCIL_MODELS, messages, enable_thinking=enable_thinking
+    )
 
     # Format results
     stage1_results = []
     for model, response in responses.items():
         if response is not None:  # Only include successful responses
-            stage1_results.append({
+            result = {
                 "model": model,
                 "response": response.get('content', '')
-            })
+            }
+            # Include reasoning details if present
+            if response.get('reasoning_details'):
+                result['reasoning_details'] = response['reasoning_details']
+            if response.get('thinking'):
+                result['thinking'] = response['thinking']
+            stage1_results.append(result)
 
     return stage1_results
 
@@ -95,7 +112,10 @@ Now provide your evaluation and ranking:"""
     messages = [{"role": "user", "content": ranking_prompt}]
 
     # Get rankings from all council models in parallel
-    responses = await query_models_parallel(COUNCIL_MODELS, messages)
+    enable_thinking = _thinking_enabled_for_stage("stage2")
+    responses = await query_models_parallel(
+        COUNCIL_MODELS, messages, enable_thinking=enable_thinking
+    )
 
     # Format results
     stage2_results = []
@@ -103,11 +123,17 @@ Now provide your evaluation and ranking:"""
         if response is not None:
             full_text = response.get('content', '')
             parsed = parse_ranking_from_text(full_text)
-            stage2_results.append({
+            result = {
                 "model": model,
                 "ranking": full_text,
                 "parsed_ranking": parsed
-            })
+            }
+            # Include reasoning details if present
+            if response.get('reasoning_details'):
+                result['reasoning_details'] = response['reasoning_details']
+            if response.get('thinking'):
+                result['thinking'] = response['thinking']
+            stage2_results.append(result)
 
     return stage2_results, label_to_model
 
@@ -158,20 +184,37 @@ Provide a clear, well-reasoned final answer that represents the council's collec
 
     messages = [{"role": "user", "content": chairman_prompt}]
 
-    # Query the chairman model
-    response = await query_model(CHAIRMAN_MODEL, messages)
+    # Query the chairman model with retry on failure
+    enable_thinking = _thinking_enabled_for_stage("stage3")
+    timeout = 300.0 if enable_thinking else 180.0  # Increased base timeout
+
+    response = None
+    for attempt in range(2):  # Try up to 2 times
+        response = await query_model(
+            CHAIRMAN_MODEL, messages, timeout=timeout, enable_thinking=enable_thinking
+        )
+        if response is not None:
+            break
+        print(f"Chairman query attempt {attempt + 1} failed, retrying...")
 
     if response is None:
-        # Fallback if chairman fails
+        # Fallback if chairman fails after retries
         return {
             "model": CHAIRMAN_MODEL,
             "response": "Error: Unable to generate final synthesis."
         }
 
-    return {
+    result = {
         "model": CHAIRMAN_MODEL,
         "response": response.get('content', '')
     }
+    # Include reasoning details if present
+    if response.get('reasoning_details'):
+        result['reasoning_details'] = response['reasoning_details']
+    if response.get('thinking'):
+        result['thinking'] = response['thinking']
+
+    return result
 
 
 def parse_ranking_from_text(ranking_text: str) -> List[str]:

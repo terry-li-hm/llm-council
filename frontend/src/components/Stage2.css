@@ -151,3 +151,30 @@
   color: #999;
   font-size: 12px;
 }
+
+.stage2 .thinking-section {
+  margin-bottom: 16px;
+  border: 1px solid #e0e0e0;
+  border-radius: 4px;
+  background: #fafafa;
+}
+
+.stage2 .thinking-section summary {
+  padding: 8px 12px;
+  cursor: pointer;
+  color: #666;
+  font-size: 13px;
+  user-select: none;
+}
+
+.stage2 .thinking-section summary:hover {
+  background: #f0f0f0;
+}
+
+.stage2 .thinking-content {
+  padding: 12px;
+  border-top: 1px solid #e0e0e0;
+  background: #fff;
+  color: #555;
+  font-size: 14px;
+}

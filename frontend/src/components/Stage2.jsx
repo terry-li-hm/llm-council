@@ -14,6 +14,20 @@ function deAnonymizeText(text, labelToModel) {
   return result;
 }
 
+// Extract readable text from reasoning_details array
+function extractReasoningText(reasoningDetails) {
+  if (!reasoningDetails || !Array.isArray(reasoningDetails)) {
+    return null;
+  }
+
+  // Filter for text-based reasoning and extract the text
+  const textParts = reasoningDetails
+    .filter(detail => detail.type === 'reasoning.text' && detail.text)
+    .map(detail => detail.text);
+
+  return textParts.length > 0 ? textParts.join('\n\n') : null;
+}
+
 export default function Stage2({ rankings, labelToModel, aggregateRankings }) {
   const [activeTab, setActiveTab] = useState(0);
 
@@ -47,6 +61,18 @@ export default function Stage2({ rankings, labelToModel, aggregateRankings }) {
         <div className="ranking-model">
           {rankings[activeTab].model}
         </div>
+
+        {extractReasoningText(rankings[activeTab].reasoning_details) && (
+          <details className="thinking-section">
+            <summary>Show reasoning process</summary>
+            <div className="thinking-content markdown-content">
+              <ReactMarkdown>
+                {extractReasoningText(rankings[activeTab].reasoning_details)}
+              </ReactMarkdown>
+            </div>
+          </details>
+        )}
+
         <div className="ranking-content markdown-content">
           <ReactMarkdown>
             {deAnonymizeText(rankings[activeTab].ranking, labelToModel)}

@@ -24,3 +24,15 @@ OPENROUTER_API_URL = "https://openrouter.ai/api/v1/chat/completions"
 
 # Data directory for conversation storage
 DATA_DIR = "data/conversations"
+
+# Thinking mode configuration
+# Extended thinking helps models reason more carefully before responding
+THINKING_CONFIG = {
+    "enabled": True,
+    "stages": {
+        "stage1": False,  # Keep Stage 1 fast for diverse initial responses
+        "stage2": True,   # Enable for careful peer evaluation
+        "stage3": True,   # Enable for thoughtful chairman synthesis
+    },
+    "budget_tokens": 10000,  # Token budget for thinking (where supported)
+}
