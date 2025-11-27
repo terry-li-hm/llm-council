@@ -170,3 +170,27 @@ def update_conversation_title(conversation_id: str, title: str):
 
     conversation["title"] = title
     save_conversation(conversation)
+
+
+def add_followup_message(
+    conversation_id: str,
+    response: Dict[str, Any]
+):
+    """
+    Add a chairman follow-up response to a conversation.
+
+    Args:
+        conversation_id: Conversation identifier
+        response: Chairman's follow-up response dict
+    """
+    conversation = get_conversation(conversation_id)
+    if conversation is None:
+        raise ValueError(f"Conversation {conversation_id} not found")
+
+    conversation["messages"].append({
+        "role": "assistant",
+        "type": "followup",
+        "response": response
+    })
+
+    save_conversation(conversation)

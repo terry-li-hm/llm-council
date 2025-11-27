@@ -336,6 +336,96 @@ Title:"""
     return title
 
 
+async def chairman_followup(
+    followup_query: str,
+    conversation_history: List[Dict[str, Any]]
+) -> Dict[str, Any]:
+    """
+    Chairman answers a follow-up question using prior deliberation context.
+
+    Args:
+        followup_query: The user's follow-up question
+        conversation_history: List of prior messages (user + assistant)
+
+    Returns:
+        Dict with 'model' and 'response' keys
+    """
+    # Find the most recent deliberation (assistant message with stage1/stage2/stage3)
+    last_deliberation = None
+    original_query = None
+
+    for i in range(len(conversation_history) - 1, -1, -1):
+        msg = conversation_history[i]
+        if msg.get("role") == "assistant" and msg.get("stage1"):
+            last_deliberation = msg
+            # The user message before this deliberation is the original query
+            if i > 0 and conversation_history[i-1].get("role") == "user":
+                original_query = conversation_history[i-1].get("content", "")
+            break
+
+    if not last_deliberation:
+        # Fallback: no prior deliberation found, just answer directly
+        response = await query_model(
+            CHAIRMAN_MODEL,
+            [{"role": "user", "content": followup_query}],
+            timeout=120.0
+        )
+        return {
+            "model": CHAIRMAN_MODEL,
+            "response": response.get('content', '') if response else "Error: Unable to generate response."
+        }
+
+    # Build context from prior deliberation
+    stage1_summary = "\n\n".join([
+        f"**{r['model']}**: {r['response'][:500]}..." if len(r['response']) > 500 else f"**{r['model']}**: {r['response']}"
+        for r in last_deliberation.get("stage1", [])
+    ])
+
+    stage3_response = last_deliberation.get("stage3", {}).get("response", "")
+
+    prompt = f"""You are the Chairman of an LLM Council. You previously synthesized an answer after a full council deliberation. The user now has a follow-up question.
+
+ORIGINAL QUESTION: {original_query}
+
+COUNCIL MEMBERS' RESPONSES (summarized):
+{stage1_summary}
+
+YOUR PREVIOUS SYNTHESIS:
+{stage3_response}
+
+---
+
+USER'S FOLLOW-UP QUESTION: {followup_query}
+
+Please answer the follow-up question. You may draw on the council's prior responses where relevant, or provide new information as needed."""
+
+    messages = [{"role": "user", "content": prompt}]
+
+    enable_thinking = _thinking_enabled_for_stage("stage3")
+    timeout = 300.0 if enable_thinking else 180.0
+
+    response = await query_model(
+        CHAIRMAN_MODEL, messages, timeout=timeout, enable_thinking=enable_thinking
+    )
+
+    if response is None:
+        return {
+            "model": CHAIRMAN_MODEL,
+            "response": "Error: Unable to generate follow-up response."
+        }
+
+    result = {
+        "model": CHAIRMAN_MODEL,
+        "response": response.get('content', '')
+    }
+    if response.get('reasoning_details'):
+        result['reasoning_details'] = response['reasoning_details']
+    if response.get('thinking'):
+        result['thinking'] = response['thinking']
+
+    return result
+
+
 async def run_full_council(user_query: str) -> Tuple[List, List, Dict, Dict]:
     """
     Run the complete 3-stage council process.

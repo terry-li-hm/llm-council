@@ -6,6 +6,9 @@ This file contains technical details, architectural decisions, and important imp
 
 LLM Council is a 3-stage deliberation system where multiple LLMs collaboratively answer user questions. The key innovation is anonymized peer review in Stage 2, preventing models from playing favorites.
 
+### Follow-up Questions
+After the initial 3-stage deliberation, users can ask follow-up questions. Follow-ups go directly to the chairman (skipping the full council), who has context from the prior deliberation. This is faster and cheaper while still leveraging the council's collective wisdom from the original question.
+
 ## Architecture
 
 ### Backend Structure (`backend/`)
@@ -31,18 +34,22 @@ LLM Council is a 3-stage deliberation system where multiple LLMs collaboratively
   - Returns tuple: (rankings_list, label_to_model_dict)
   - Each ranking includes both raw text and `parsed_ranking` list
 - `stage3_synthesize_final()`: Chairman synthesizes from all responses + rankings
+- `chairman_followup()`: Chairman answers follow-up questions with context from prior deliberation
 - `parse_ranking_from_text()`: Extracts "FINAL RANKING:" section, handles both numbered lists and plain format
 - `calculate_aggregate_rankings()`: Computes average rank position across all peer evaluations
 
 **`storage.py`**
 - JSON-based conversation storage in `data/conversations/`
 - Each conversation: `{id, created_at, messages[]}`
-- Assistant messages contain: `{role, stage1, stage2, stage3}`
+- Deliberation messages: `{role: "assistant", stage1, stage2, stage3}`
+- Follow-up messages: `{role: "assistant", type: "followup", response}`
 - Note: metadata (label_to_model, aggregate_rankings) is NOT persisted to storage, only returned via API
 
 **`main.py`**
 - FastAPI app with CORS enabled for localhost:5173 and localhost:3000
-- POST `/api/conversations/{id}/message` returns metadata in addition to stages
+- POST `/api/conversations/{id}/message`:
+  - First message: returns `{type: "deliberation", stage1, stage2, stage3, metadata}`
+  - Follow-up messages: returns `{type: "followup", response}`
 - Metadata includes: label_to_model mapping and aggregate_rankings
 
 ### Frontend Structure (`frontend/src/`)
@@ -147,6 +154,7 @@ Use `test_openrouter.py` to verify API connectivity and test different model ide
 
 ## Data Flow Summary
 
+### First Message (Full Deliberation)
 ```
 User Query
     ↓
@@ -158,9 +166,20 @@ Aggregate Rankings Calculation → [sorted by avg position]
     ↓
 Stage 3: Chairman synthesis with full context
     ↓
-Return: {stage1, stage2, stage3, metadata}
+Return: {type: "deliberation", stage1, stage2, stage3, metadata}
     ↓
 Frontend: Display with tabs + validation UI
+```
+
+### Follow-up Messages (Chairman Only)
+```
+Follow-up Query + Prior Deliberation Context
+    ↓
+Chairman answers with awareness of council's prior work
+    ↓
+Return: {type: "followup", response}
+    ↓
+Frontend: Display simple response (no tabs)
 ```
 
 The entire flow is async/parallel where possible to minimize latency.

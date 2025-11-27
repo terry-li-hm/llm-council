@@ -10,7 +10,7 @@ import json
 import asyncio
 
 from . import storage
-from .council import run_full_council, generate_conversation_title, stage1_collect_responses, stage2_collect_rankings, stage3_synthesize_final, calculate_aggregate_rankings
+from .council import run_full_council, generate_conversation_title, stage1_collect_responses, stage2_collect_rankings, stage3_synthesize_final, calculate_aggregate_rankings, chairman_followup
 
 app = FastAPI(title="LLM Council API")
 
@@ -82,8 +82,8 @@ async def get_conversation(conversation_id: str):
 @app.post("/api/conversations/{conversation_id}/message")
 async def send_message(conversation_id: str, request: SendMessageRequest):
     """
-    Send a message and run the 3-stage council process.
-    Returns the complete response with all stages.
+    Send a message. First message triggers full 3-stage council deliberation.
+    Follow-up messages go directly to the chairman with prior context.
     """
     # Check if conversation exists
     conversation = storage.get_conversation(conversation_id)
@@ -96,31 +96,45 @@ async def send_message(conversation_id: str, request: SendMessageRequest):
     # Add user message
     storage.add_user_message(conversation_id, request.content)
 
-    # If this is the first message, generate a title
     if is_first_message:
+        # First message: full 3-stage council deliberation
         title = await generate_conversation_title(request.content)
         storage.update_conversation_title(conversation_id, title)
 
-    # Run the 3-stage council process
-    stage1_results, stage2_results, stage3_result, metadata = await run_full_council(
-        request.content
-    )
+        stage1_results, stage2_results, stage3_result, metadata = await run_full_council(
+            request.content
+        )
 
-    # Add assistant message with all stages
-    storage.add_assistant_message(
-        conversation_id,
-        stage1_results,
-        stage2_results,
-        stage3_result
-    )
+        storage.add_assistant_message(
+            conversation_id,
+            stage1_results,
+            stage2_results,
+            stage3_result
+        )
 
-    # Return the complete response with metadata
-    return {
-        "stage1": stage1_results,
-        "stage2": stage2_results,
-        "stage3": stage3_result,
-        "metadata": metadata
-    }
+        return {
+            "type": "deliberation",
+            "stage1": stage1_results,
+            "stage2": stage2_results,
+            "stage3": stage3_result,
+            "metadata": metadata
+        }
+    else:
+        # Follow-up: chairman only with prior context
+        # Re-fetch conversation to include the just-added user message
+        conversation = storage.get_conversation(conversation_id)
+
+        response = await chairman_followup(
+            request.content,
+            conversation["messages"]
+        )
+
+        storage.add_followup_message(conversation_id, response)
+
+        return {
+            "type": "followup",
+            "response": response
+        }
 
 
 @app.post("/api/conversations/{conversation_id}/message/stream")
