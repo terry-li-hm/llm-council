@@ -50,7 +50,7 @@ SYSTEM_PROMPTS = {
     # System prompt for council members (Stage 1 and Stage 2)
     "council": "",
     # System prompt for the chairman (Stage 3 and follow-ups)
-    "chairman": "",
+    "chairman": "Use continuous paragraphs rather than structured notes. Avoid headings or bullet points unless the user explicitly requests a list, step-by-step guide, or pros-and-cons comparison. When in doubt, use simple prose and clearly explain ideas in a few concise, straightforward paragraphs.",
 }
 
 # Thinking mode configuration
