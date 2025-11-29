@@ -44,6 +44,15 @@ OPENROUTER_API_URL = "https://openrouter.ai/api/v1/chat/completions"
 # Data directory for conversation storage
 DATA_DIR = "data/conversations"
 
+# System prompts for different roles
+# Set to None or empty string to disable system prompts
+SYSTEM_PROMPTS = {
+    # System prompt for council members (Stage 1 and Stage 2)
+    "council": "",
+    # System prompt for the chairman (Stage 3 and follow-ups)
+    "chairman": "",
+}
+
 # Thinking mode configuration
 # Extended thinking helps models reason more carefully before responding
 THINKING_CONFIG = {

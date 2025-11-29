@@ -3,9 +3,28 @@
 import logging
 from typing import List, Dict, Any, Tuple
 from .openrouter import query_models_parallel, query_model
-from .config import COUNCIL_MODELS, CHAIRMAN_MODEL, THINKING_CONFIG
+from .config import COUNCIL_MODELS, CHAIRMAN_MODEL, THINKING_CONFIG, SYSTEM_PROMPTS
 
 logger = logging.getLogger(__name__)
+
+
+def _build_messages(content: str, role: str = "council") -> List[Dict[str, str]]:
+    """
+    Build messages list with optional system prompt.
+
+    Args:
+        content: The user message content
+        role: Either "council" or "chairman" to select system prompt
+
+    Returns:
+        List of message dicts, with system prompt prepended if configured
+    """
+    messages = []
+    system_prompt = SYSTEM_PROMPTS.get(role, "")
+    if system_prompt:
+        messages.append({"role": "system", "content": system_prompt})
+    messages.append({"role": "user", "content": content})
+    return messages
 
 
 def _thinking_enabled_for_stage(stage: str) -> bool:
@@ -26,7 +45,7 @@ async def stage1_collect_responses(user_query: str) -> List[Dict[str, Any]]:
     Returns:
         List of dicts with 'model', 'response', and optional 'thinking' keys
     """
-    messages = [{"role": "user", "content": user_query}]
+    messages = _build_messages(user_query, role="council")
 
     # Query all models in parallel
     enable_thinking = _thinking_enabled_for_stage("stage1")
@@ -112,7 +131,7 @@ FINAL RANKING:
 
 Now provide your evaluation and ranking:"""
 
-    messages = [{"role": "user", "content": ranking_prompt}]
+    messages = _build_messages(ranking_prompt, role="council")
 
     # Get rankings from all council models in parallel
     enable_thinking = _thinking_enabled_for_stage("stage2")
@@ -185,7 +204,7 @@ Your task as Chairman is to synthesize all of this information into a single, co
 
 Provide a clear, well-reasoned final answer that represents the council's collective wisdom:"""
 
-    messages = [{"role": "user", "content": chairman_prompt}]
+    messages = _build_messages(chairman_prompt, role="chairman")
 
     # Query the chairman model with retry on failure
     enable_thinking = _thinking_enabled_for_stage("stage3")
@@ -370,7 +389,7 @@ async def chairman_followup(
         # Fallback: no prior deliberation found, just answer directly
         response = await query_model(
             CHAIRMAN_MODEL,
-            [{"role": "user", "content": followup_query}],
+            _build_messages(followup_query, role="chairman"),
             timeout=120.0
         )
         return {
@@ -402,7 +421,7 @@ USER'S FOLLOW-UP QUESTION: {followup_query}
 
 Please answer the follow-up question. You may draw on the council's prior responses where relevant, or provide new information as needed."""
 
-    messages = [{"role": "user", "content": prompt}]
+    messages = _build_messages(prompt, role="chairman")
 
     enable_thinking = _thinking_enabled_for_stage("stage3")
     timeout = 300.0 if enable_thinking else 180.0
