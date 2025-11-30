@@ -2,9 +2,10 @@
 
 import os
 import logging
-from dotenv import load_dotenv
+from dotenv import load_dotenv, find_dotenv
 
-load_dotenv()
+# Load .env file, override=True ensures .env takes precedence over shell environment
+load_dotenv(find_dotenv(), override=True)
 
 # Configure logging
 logging.basicConfig(
