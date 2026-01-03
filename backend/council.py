@@ -8,25 +8,29 @@ from .config import COUNCIL_MODELS, CHAIRMAN_MODEL, THINKING_CONFIG, SYSTEM_PROM
 logger = logging.getLogger(__name__)
 
 
-def _get_expanded_model_list() -> List[Dict[str, Any]]:
+def _get_expanded_model_list(duplicate_models: List[str] = None) -> List[Dict[str, Any]]:
     """
-    Get the list of models to query, expanded if DUPLICATE_INSTANCES is enabled.
+    Get the list of models to query, with specified models duplicated.
+
+    Args:
+        duplicate_models: List of model identifiers to query twice. If None,
+                         falls back to DUPLICATE_INSTANCES config (all or none).
 
     Returns:
         List of dicts with 'model' and 'instance' keys.
-        If DUPLICATE_INSTANCES is False, each model has instance=1.
-        If DUPLICATE_INSTANCES is True, each model appears twice with instance=1 and instance=2.
+        Models in duplicate_models list appear twice with instance=1 and instance=2.
+        Other models appear once with instance=1.
     """
-    if DUPLICATE_INSTANCES:
-        # Each model queried twice
-        expanded = []
-        for model in COUNCIL_MODELS:
-            expanded.append({"model": model, "instance": 1})
+    # If no explicit list provided, fall back to config behavior
+    if duplicate_models is None:
+        duplicate_models = COUNCIL_MODELS if DUPLICATE_INSTANCES else []
+
+    expanded = []
+    for model in COUNCIL_MODELS:
+        expanded.append({"model": model, "instance": 1})
+        if model in duplicate_models:
             expanded.append({"model": model, "instance": 2})
-        return expanded
-    else:
-        # Single instance per model
-        return [{"model": model, "instance": 1} for model in COUNCIL_MODELS]
+    return expanded
 
 
 def _build_messages(content: str, role: str = "council") -> List[Dict[str, str]]:
@@ -56,22 +60,23 @@ def _thinking_enabled_for_stage(stage: str) -> bool:
     )
 
 
-async def stage1_collect_responses(user_query: str) -> List[Dict[str, Any]]:
+async def stage1_collect_responses(user_query: str, duplicate_models: List[str] = None) -> List[Dict[str, Any]]:
     """
     Stage 1: Collect individual responses from all council models.
 
     Args:
         user_query: The user's question
+        duplicate_models: List of model identifiers to query twice (optional)
 
     Returns:
         List of dicts with 'model', 'response', 'instance', and optional 'thinking' keys.
-        When DUPLICATE_INSTANCES is enabled, each model appears twice with instance 1 and 2.
+        Models in duplicate_models appear twice with instance 1 and 2.
     """
     messages = _build_messages(user_query, role="council")
     enable_thinking = _thinking_enabled_for_stage("stage1")
 
-    # Get expanded model list (handles duplicate instances if enabled)
-    expanded_models = _get_expanded_model_list()
+    # Get expanded model list (handles duplicate instances)
+    expanded_models = _get_expanded_model_list(duplicate_models)
     model_ids = [m["model"] for m in expanded_models]
 
     # Query all models in parallel using list-based function (handles duplicates)
@@ -100,7 +105,8 @@ async def stage1_collect_responses(user_query: str) -> List[Dict[str, Any]]:
 
 async def stage2_collect_rankings(
     user_query: str,
-    stage1_results: List[Dict[str, Any]]
+    stage1_results: List[Dict[str, Any]],
+    duplicate_models: List[str] = None
 ) -> Tuple[List[Dict[str, Any]], Dict[str, Any]]:
     """
     Stage 2: Each model ranks the anonymized responses.
@@ -108,6 +114,7 @@ async def stage2_collect_rankings(
     Args:
         user_query: The original user query
         stage1_results: Results from Stage 1
+        duplicate_models: List of model identifiers to query twice (optional)
 
     Returns:
         Tuple of (rankings list, label_to_model mapping)
@@ -165,8 +172,8 @@ Now provide your evaluation and ranking:"""
     messages = _build_messages(ranking_prompt, role="council")
     enable_thinking = _thinking_enabled_for_stage("stage2")
 
-    # Get expanded model list (handles duplicate instances if enabled)
-    expanded_models = _get_expanded_model_list()
+    # Get expanded model list (handles duplicate instances)
+    expanded_models = _get_expanded_model_list(duplicate_models)
     model_ids = [m["model"] for m in expanded_models]
 
     # Get rankings from all council models in parallel
@@ -199,7 +206,8 @@ Now provide your evaluation and ranking:"""
 async def stage3_synthesize_final(
     user_query: str,
     stage1_results: List[Dict[str, Any]],
-    stage2_results: List[Dict[str, Any]]
+    stage2_results: List[Dict[str, Any]],
+    duplicate_models: List[str] = None
 ) -> Dict[str, Any]:
     """
     Stage 3: Chairman synthesizes final response.
@@ -208,17 +216,23 @@ async def stage3_synthesize_final(
         user_query: The original user query
         stage1_results: Individual model responses from Stage 1
         stage2_results: Rankings from Stage 2
+        duplicate_models: List of model identifiers that were queried twice
 
     Returns:
         Dict with 'model' and 'response' keys
     """
+    # Check if any duplicates were used (either via param or config)
+    has_duplicates = bool(duplicate_models) or DUPLICATE_INSTANCES
+
     # Build comprehensive context for chairman
-    # Include instance info when duplicates are enabled
+    # Include instance info when duplicates are present
     def format_model_label(result):
         model = result['model']
         instance = result.get('instance', 1)
-        if DUPLICATE_INSTANCES:
+        if has_duplicates and instance > 1:
             return f"{model} (instance {instance})"
+        elif has_duplicates:
+            return f"{model} (instance 1)"
         return model
 
     stage1_text = "\n\n".join([
@@ -500,18 +514,19 @@ Please answer the follow-up question. You may draw on the council's prior respon
     return result
 
 
-async def run_full_council(user_query: str) -> Tuple[List, List, Dict, Dict]:
+async def run_full_council(user_query: str, duplicate_models: List[str] = None) -> Tuple[List, List, Dict, Dict]:
     """
     Run the complete 3-stage council process.
 
     Args:
         user_query: The user's question
+        duplicate_models: List of model identifiers to query twice (optional)
 
     Returns:
         Tuple of (stage1_results, stage2_results, stage3_result, metadata)
     """
     # Stage 1: Collect individual responses
-    stage1_results = await stage1_collect_responses(user_query)
+    stage1_results = await stage1_collect_responses(user_query, duplicate_models=duplicate_models)
 
     # If no models responded successfully, return error
     if not stage1_results:
@@ -521,7 +536,9 @@ async def run_full_council(user_query: str) -> Tuple[List, List, Dict, Dict]:
         }, {}
 
     # Stage 2: Collect rankings
-    stage2_results, label_to_model = await stage2_collect_rankings(user_query, stage1_results)
+    stage2_results, label_to_model = await stage2_collect_rankings(
+        user_query, stage1_results, duplicate_models=duplicate_models
+    )
 
     # Calculate aggregate rankings
     aggregate_rankings = calculate_aggregate_rankings(stage2_results, label_to_model)
@@ -530,7 +547,8 @@ async def run_full_council(user_query: str) -> Tuple[List, List, Dict, Dict]:
     stage3_result = await stage3_synthesize_final(
         user_query,
         stage1_results,
-        stage2_results
+        stage2_results,
+        duplicate_models=duplicate_models
     )
 
     # Prepare metadata

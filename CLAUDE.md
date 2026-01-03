@@ -107,13 +107,23 @@ This strict format allows reliable parsing while still getting thoughtful evalua
 - This prevents bias while maintaining transparency
 
 ### Duplicate Instances Feature
-When `DUPLICATE_INSTANCES = True` in config.py, each council model is queried twice:
-- Captures intra-model variance (how consistent is a model's response?)
+Models can be queried twice to capture intra-model variance. This can be configured two ways:
+
+**Per-request (UI toggle):**
+- Click the gear icon in the sidebar to open Settings
+- Select which models should run twice
+- Settings are saved in localStorage and sent with each request
 - Each response gets an `instance` field (1 or 2)
 - Frontend shows instance numbers in tabs when duplicates exist (e.g., "gpt-5.1 (1)", "gpt-5.1 (2)")
+
+**Global default (config file):**
+- Set `DUPLICATE_INSTANCES = True` in config.py to duplicate all models by default
+- Per-request settings override this default
+
+Technical details:
 - Aggregate rankings track each model+instance combination separately
 - Chairman receives context indicating which responses came from the same model
-- Trade-off: Doubles API cost but reveals model consistency patterns
+- Trade-off: Doubles API cost for selected models but reveals consistency patterns
 
 ### Error Handling Philosophy
 - Continue with successful responses if some models fail (graceful degradation)
