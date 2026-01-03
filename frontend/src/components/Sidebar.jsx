@@ -8,13 +8,20 @@ export default function Sidebar({
   onNewConversation,
   theme,
   onToggleTheme,
+  isOpen,
+  onClose,
 }) {
   return (
-    <div className="sidebar">
+    <div className={`sidebar ${isOpen ? 'open' : ''}`}>
       <div className="sidebar-header">
         <div className="sidebar-title-row">
           <h1>LLM Council</h1>
-          <ThemeToggle theme={theme} onToggle={onToggleTheme} />
+          <div className="sidebar-header-actions">
+            <ThemeToggle theme={theme} onToggle={onToggleTheme} />
+            <button className="close-sidebar-btn" onClick={onClose} aria-label="Close menu">
+              ×
+            </button>
+          </div>
         </div>
         <button className="new-conversation-btn" onClick={onNewConversation}>
           + New Conversation

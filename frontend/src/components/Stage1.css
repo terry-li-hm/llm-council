@@ -65,3 +65,40 @@
   color: var(--text-primary);
   line-height: 1.6;
 }
+
+/* Mobile styles */
+@media (max-width: 768px) {
+  .stage {
+    margin: 16px 0;
+    padding: 12px;
+  }
+
+  .stage-title {
+    font-size: 14px;
+    margin-bottom: 12px;
+  }
+
+  .tabs {
+    gap: 6px;
+    margin-bottom: 12px;
+  }
+
+  .tab {
+    padding: 10px 12px;
+    font-size: 12px;
+    /* Truncate long model names on mobile */
+    max-width: 120px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .tab-content {
+    padding: 12px;
+  }
+
+  .model-name {
+    font-size: 11px;
+    word-break: break-all;
+  }
+}

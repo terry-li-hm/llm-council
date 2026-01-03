@@ -64,3 +64,36 @@
   color: var(--thinking-text);
   font-size: 14px;
 }
+
+/* Mobile styles */
+@media (max-width: 768px) {
+  .followup-response {
+    padding: 12px;
+  }
+
+  .followup-header {
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  .followup-badge {
+    font-size: 10px;
+  }
+
+  .followup-model {
+    font-size: 11px;
+    word-break: break-all;
+  }
+
+  .followup-text {
+    font-size: 14px;
+  }
+
+  .followup-response .thinking-section summary {
+    font-size: 12px;
+  }
+
+  .followup-response .thinking-content {
+    font-size: 13px;
+  }
+}

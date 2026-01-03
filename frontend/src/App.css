@@ -5,6 +5,7 @@
 .app {
   display: flex;
   height: 100vh;
+  height: 100dvh; /* Dynamic viewport height for mobile */
   width: 100vw;
   overflow: hidden;
   background: var(--bg-primary);
@@ -13,4 +14,75 @@
     'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
     sans-serif;
   transition: background-color 0.2s, color 0.2s;
+}
+
+/* Mobile header - hidden on desktop */
+.mobile-header {
+  display: none;
+}
+
+/* Sidebar overlay - hidden on desktop */
+.sidebar-overlay {
+  display: none;
+}
+
+/* Mobile styles */
+@media (max-width: 768px) {
+  .app {
+    flex-direction: column;
+  }
+
+  .mobile-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 16px;
+    background: var(--bg-secondary);
+    border-bottom: 1px solid var(--border-primary);
+    flex-shrink: 0;
+  }
+
+  .hamburger-btn {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 5px;
+    width: 44px;
+    height: 44px;
+    padding: 10px;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    border-radius: 6px;
+  }
+
+  .hamburger-btn:hover {
+    background: var(--bg-hover);
+  }
+
+  .hamburger-btn span {
+    display: block;
+    width: 24px;
+    height: 2px;
+    background: var(--text-primary);
+    border-radius: 1px;
+  }
+
+  .mobile-title {
+    font-size: 18px;
+    font-weight: 600;
+    margin: 0;
+    color: var(--text-primary);
+  }
+
+  .sidebar-overlay {
+    display: block;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 998;
+  }
 }
