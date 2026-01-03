@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import Sidebar from './components/Sidebar';
 import ChatInterface from './components/ChatInterface';
+import Login from './components/Login';
 import { api } from './api';
 import { useTheme } from './utils/useTheme';
 import './App.css';
@@ -13,10 +14,45 @@ function App() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const { theme, toggleTheme } = useTheme();
 
-  // Load conversations on mount
+  // Auth state
+  const [authStatus, setAuthStatus] = useState(null);
+  const [authLoading, setAuthLoading] = useState(true);
+
+  // Check auth status on mount
   useEffect(() => {
-    loadConversations();
+    checkAuthStatus();
   }, []);
+
+  const checkAuthStatus = async () => {
+    try {
+      const status = await api.getAuthStatus();
+      setAuthStatus(status);
+    } catch (error) {
+      console.error('Failed to check auth status:', error);
+      setAuthStatus({ authenticated: false, auth_enabled: true });
+    } finally {
+      setAuthLoading(false);
+    }
+  };
+
+  const handleLogout = async () => {
+    try {
+      await api.logout();
+      setAuthStatus({ authenticated: false, auth_enabled: true });
+      setConversations([]);
+      setCurrentConversation(null);
+      setCurrentConversationId(null);
+    } catch (error) {
+      console.error('Failed to logout:', error);
+    }
+  };
+
+  // Load conversations on mount (only if authenticated)
+  useEffect(() => {
+    if (authStatus?.authenticated || authStatus?.auth_enabled === false) {
+      loadConversations();
+    }
+  }, [authStatus]);
 
   // Load conversation details when selected
   useEffect(() => {
@@ -210,6 +246,20 @@ function App() {
     }
   };
 
+  // Show loading while checking auth
+  if (authLoading) {
+    return (
+      <div className="app loading">
+        <div className="loading-spinner">Loading...</div>
+      </div>
+    );
+  }
+
+  // Show login if auth is enabled and user is not authenticated
+  if (authStatus?.auth_enabled && !authStatus?.authenticated) {
+    return <Login />;
+  }
+
   return (
     <div className="app">
       {/* Mobile header with hamburger menu */}
@@ -243,6 +293,9 @@ function App() {
         onToggleTheme={toggleTheme}
         isOpen={sidebarOpen}
         onClose={() => setSidebarOpen(false)}
+        username={authStatus?.username}
+        authEnabled={authStatus?.auth_enabled}
+        onLogout={handleLogout}
       />
       <ChatInterface
         conversation={currentConversation}

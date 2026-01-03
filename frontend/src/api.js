@@ -6,11 +6,50 @@ const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:8001';
 
 export const api = {
   /**
+   * Check authentication status.
+   */
+  async getAuthStatus() {
+    const response = await fetch(`${API_BASE}/auth/status`, {
+      credentials: 'include',
+    });
+    if (!response.ok) {
+      throw new Error('Failed to check auth status');
+    }
+    return response.json();
+  },
+
+  /**
+   * Get the login URL.
+   */
+  getLoginUrl() {
+    return `${API_BASE}/auth/login`;
+  },
+
+  /**
+   * Log out the current user.
+   */
+  async logout() {
+    const response = await fetch(`${API_BASE}/auth/logout`, {
+      method: 'POST',
+      credentials: 'include',
+    });
+    if (!response.ok) {
+      throw new Error('Failed to logout');
+    }
+    return response.json();
+  },
+
+  /**
    * List all conversations.
    */
   async listConversations() {
-    const response = await fetch(`${API_BASE}/api/conversations`);
+    const response = await fetch(`${API_BASE}/api/conversations`, {
+      credentials: 'include',
+    });
     if (!response.ok) {
+      if (response.status === 401) {
+        throw new Error('Unauthorized');
+      }
       throw new Error('Failed to list conversations');
     }
     return response.json();
@@ -22,12 +61,16 @@ export const api = {
   async createConversation() {
     const response = await fetch(`${API_BASE}/api/conversations`, {
       method: 'POST',
+      credentials: 'include',
       headers: {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({}),
     });
     if (!response.ok) {
+      if (response.status === 401) {
+        throw new Error('Unauthorized');
+      }
       throw new Error('Failed to create conversation');
     }
     return response.json();
@@ -38,9 +81,15 @@ export const api = {
    */
   async getConversation(conversationId) {
     const response = await fetch(
-      `${API_BASE}/api/conversations/${conversationId}`
+      `${API_BASE}/api/conversations/${conversationId}`,
+      {
+        credentials: 'include',
+      }
     );
     if (!response.ok) {
+      if (response.status === 401) {
+        throw new Error('Unauthorized');
+      }
       throw new Error('Failed to get conversation');
     }
     return response.json();
@@ -54,6 +103,7 @@ export const api = {
       `${API_BASE}/api/conversations/${conversationId}/message`,
       {
         method: 'POST',
+        credentials: 'include',
         headers: {
           'Content-Type': 'application/json',
         },
@@ -61,6 +111,9 @@ export const api = {
       }
     );
     if (!response.ok) {
+      if (response.status === 401) {
+        throw new Error('Unauthorized');
+      }
       throw new Error('Failed to send message');
     }
     return response.json();
@@ -78,6 +131,7 @@ export const api = {
       `${API_BASE}/api/conversations/${conversationId}/message/stream`,
       {
         method: 'POST',
+        credentials: 'include',
         headers: {
           'Content-Type': 'application/json',
         },
@@ -86,6 +140,9 @@ export const api = {
     );
 
     if (!response.ok) {
+      if (response.status === 401) {
+        throw new Error('Unauthorized');
+      }
       throw new Error('Failed to send message');
     }
 

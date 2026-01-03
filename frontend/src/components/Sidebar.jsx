@@ -10,6 +10,9 @@ export default function Sidebar({
   onToggleTheme,
   isOpen,
   onClose,
+  username,
+  authEnabled,
+  onLogout,
 }) {
   return (
     <div className={`sidebar ${isOpen ? 'open' : ''}`}>
@@ -50,6 +53,17 @@ export default function Sidebar({
           ))
         )}
       </div>
+
+      {authEnabled && username && (
+        <div className="sidebar-footer">
+          <div className="user-info">
+            <span className="username">{username}</span>
+            <button className="logout-btn" onClick={onLogout}>
+              Sign out
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

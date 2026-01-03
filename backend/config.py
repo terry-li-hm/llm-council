@@ -1,6 +1,7 @@
 """Configuration for the LLM Council."""
 
 import os
+import secrets
 import logging
 from dotenv import load_dotenv, find_dotenv
 
@@ -26,6 +27,16 @@ CORS_ORIGINS = os.getenv(
     "CORS_ORIGINS",
     "http://localhost:5173,http://localhost:3000"
 ).split(",")
+
+# GitHub OAuth configuration (optional - leave empty to disable auth)
+GITHUB_CLIENT_ID = os.getenv("GITHUB_CLIENT_ID", "")
+GITHUB_CLIENT_SECRET = os.getenv("GITHUB_CLIENT_SECRET", "")
+# Comma-separated list of allowed GitHub usernames (empty = allow all authenticated users)
+GITHUB_ALLOWED_USERS = [u.strip() for u in os.getenv("GITHUB_ALLOWED_USERS", "").split(",") if u.strip()]
+# Secret key for signing session tokens
+SESSION_SECRET = os.getenv("SESSION_SECRET", secrets.token_hex(32))
+# Frontend URL for redirects
+FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:5173")
 
 # Council members - list of OpenRouter model identifiers
 COUNCIL_MODELS = [
