@@ -54,6 +54,10 @@ SYSTEM_PROMPTS = {
     "chairman": "Use continuous paragraphs rather than structured notes. Avoid headings or bullet points unless the user explicitly requests a list, step-by-step guide, or pros-and-cons comparison. When in doubt, use simple prose and clearly explain ideas in a few concise, straightforward paragraphs.",
 }
 
+# Duplicate instances configuration
+# When enabled, each council model is queried twice to capture intra-model variance
+DUPLICATE_INSTANCES = False
+
 # Thinking mode configuration
 # Extended thinking helps models reason more carefully before responding
 THINKING_CONFIG = {

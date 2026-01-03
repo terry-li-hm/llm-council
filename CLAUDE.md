@@ -21,8 +21,9 @@ After the initial 3-stage deliberation, users can ask follow-up questions. Follo
 
 **`openrouter.py`**
 - `query_model()`: Single async model query
-- `query_models_parallel()`: Parallel queries using `asyncio.gather()`
-- Returns dict with 'content' and optional 'reasoning_details'
+- `query_models_parallel()`: Parallel queries using `asyncio.gather()`, returns dict
+- `query_models_parallel_list()`: Same but returns list of tuples, supports duplicate models
+- Returns dict/list with 'content' and optional 'reasoning_details'
 - Graceful degradation: returns None on failure, continues with successful responses
 
 **`council.py`** - The Core Logic
@@ -100,10 +101,19 @@ This strict format allows reliable parsing while still getting thoughtful evalua
 
 ### De-anonymization Strategy
 - Models receive: "Response A", "Response B", etc.
-- Backend creates mapping: `{"Response A": "openai/gpt-5.1", ...}`
+- Backend creates mapping: `{"Response A": {"model": "openai/gpt-5.1", "instance": 1}, ...}`
 - Frontend displays model names in **bold** for readability
 - Users see explanation that original evaluation used anonymous labels
 - This prevents bias while maintaining transparency
+
+### Duplicate Instances Feature
+When `DUPLICATE_INSTANCES = True` in config.py, each council model is queried twice:
+- Captures intra-model variance (how consistent is a model's response?)
+- Each response gets an `instance` field (1 or 2)
+- Frontend shows instance numbers in tabs when duplicates exist (e.g., "gpt-5.1 (1)", "gpt-5.1 (2)")
+- Aggregate rankings track each model+instance combination separately
+- Chairman receives context indicating which responses came from the same model
+- Trade-off: Doubles API cost but reveals model consistency patterns
 
 ### Error Handling Philosophy
 - Continue with successful responses if some models fail (graceful degradation)
@@ -130,7 +140,7 @@ All backend modules use relative imports (e.g., `from .config import ...`) not a
 All ReactMarkdown components must be wrapped in `<div className="markdown-content">` for proper spacing. This class is defined globally in `index.css`.
 
 ### Model Configuration
-Models are hardcoded in `backend/config.py`. Chairman can be same or different from council members. The current default is Gemini as chairman per user preference.
+Models are hardcoded in `backend/config.py`. Chairman can be same or different from council members. The current default is Gemini as chairman per user preference. Set `DUPLICATE_INSTANCES = True` to query each model twice for intra-model variance analysis.
 
 ## Common Gotchas
 

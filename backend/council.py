@@ -2,10 +2,31 @@
 
 import logging
 from typing import List, Dict, Any, Tuple
-from .openrouter import query_models_parallel, query_model
-from .config import COUNCIL_MODELS, CHAIRMAN_MODEL, THINKING_CONFIG, SYSTEM_PROMPTS
+from .openrouter import query_models_parallel, query_models_parallel_list, query_model
+from .config import COUNCIL_MODELS, CHAIRMAN_MODEL, THINKING_CONFIG, SYSTEM_PROMPTS, DUPLICATE_INSTANCES
 
 logger = logging.getLogger(__name__)
+
+
+def _get_expanded_model_list() -> List[Dict[str, Any]]:
+    """
+    Get the list of models to query, expanded if DUPLICATE_INSTANCES is enabled.
+
+    Returns:
+        List of dicts with 'model' and 'instance' keys.
+        If DUPLICATE_INSTANCES is False, each model has instance=1.
+        If DUPLICATE_INSTANCES is True, each model appears twice with instance=1 and instance=2.
+    """
+    if DUPLICATE_INSTANCES:
+        # Each model queried twice
+        expanded = []
+        for model in COUNCIL_MODELS:
+            expanded.append({"model": model, "instance": 1})
+            expanded.append({"model": model, "instance": 2})
+        return expanded
+    else:
+        # Single instance per model
+        return [{"model": model, "instance": 1} for model in COUNCIL_MODELS]
 
 
 def _build_messages(content: str, role: str = "council") -> List[Dict[str, str]]:
@@ -43,22 +64,28 @@ async def stage1_collect_responses(user_query: str) -> List[Dict[str, Any]]:
         user_query: The user's question
 
     Returns:
-        List of dicts with 'model', 'response', and optional 'thinking' keys
+        List of dicts with 'model', 'response', 'instance', and optional 'thinking' keys.
+        When DUPLICATE_INSTANCES is enabled, each model appears twice with instance 1 and 2.
     """
     messages = _build_messages(user_query, role="council")
-
-    # Query all models in parallel
     enable_thinking = _thinking_enabled_for_stage("stage1")
-    responses = await query_models_parallel(
-        COUNCIL_MODELS, messages, enable_thinking=enable_thinking
+
+    # Get expanded model list (handles duplicate instances if enabled)
+    expanded_models = _get_expanded_model_list()
+    model_ids = [m["model"] for m in expanded_models]
+
+    # Query all models in parallel using list-based function (handles duplicates)
+    responses = await query_models_parallel_list(
+        model_ids, messages, enable_thinking=enable_thinking
     )
 
-    # Format results
+    # Format results, preserving instance information
     stage1_results = []
-    for model, response in responses.items():
+    for (model, response), model_info in zip(responses, expanded_models):
         if response is not None:  # Only include successful responses
             result = {
                 "model": model,
+                "instance": model_info["instance"],
                 "response": response.get('content', '')
             }
             # Include reasoning details if present
@@ -74,7 +101,7 @@ async def stage1_collect_responses(user_query: str) -> List[Dict[str, Any]]:
 async def stage2_collect_rankings(
     user_query: str,
     stage1_results: List[Dict[str, Any]]
-) -> Tuple[List[Dict[str, Any]], Dict[str, str]]:
+) -> Tuple[List[Dict[str, Any]], Dict[str, Any]]:
     """
     Stage 2: Each model ranks the anonymized responses.
 
@@ -84,13 +111,17 @@ async def stage2_collect_rankings(
 
     Returns:
         Tuple of (rankings list, label_to_model mapping)
+        The label_to_model mapping includes 'model' and 'instance' for each label.
     """
     # Create anonymized labels for responses (Response A, Response B, etc.)
     labels = [chr(65 + i) for i in range(len(stage1_results))]  # A, B, C, ...
 
-    # Create mapping from label to model name
+    # Create mapping from label to model info (including instance)
     label_to_model = {
-        f"Response {label}": result['model']
+        f"Response {label}": {
+            "model": result['model'],
+            "instance": result.get('instance', 1)
+        }
         for label, result in zip(labels, stage1_results)
     }
 
@@ -132,21 +163,26 @@ FINAL RANKING:
 Now provide your evaluation and ranking:"""
 
     messages = _build_messages(ranking_prompt, role="council")
+    enable_thinking = _thinking_enabled_for_stage("stage2")
+
+    # Get expanded model list (handles duplicate instances if enabled)
+    expanded_models = _get_expanded_model_list()
+    model_ids = [m["model"] for m in expanded_models]
 
     # Get rankings from all council models in parallel
-    enable_thinking = _thinking_enabled_for_stage("stage2")
-    responses = await query_models_parallel(
-        COUNCIL_MODELS, messages, enable_thinking=enable_thinking
+    responses = await query_models_parallel_list(
+        model_ids, messages, enable_thinking=enable_thinking
     )
 
     # Format results
     stage2_results = []
-    for model, response in responses.items():
+    for (model, response), model_info in zip(responses, expanded_models):
         if response is not None:
             full_text = response.get('content', '')
             parsed = parse_ranking_from_text(full_text)
             result = {
                 "model": model,
+                "instance": model_info["instance"],
                 "ranking": full_text,
                 "parsed_ranking": parsed
             }
@@ -177,13 +213,21 @@ async def stage3_synthesize_final(
         Dict with 'model' and 'response' keys
     """
     # Build comprehensive context for chairman
+    # Include instance info when duplicates are enabled
+    def format_model_label(result):
+        model = result['model']
+        instance = result.get('instance', 1)
+        if DUPLICATE_INSTANCES:
+            return f"{model} (instance {instance})"
+        return model
+
     stage1_text = "\n\n".join([
-        f"Model: {result['model']}\nResponse: {result['response']}"
+        f"Model: {format_model_label(result)}\nResponse: {result['response']}"
         for result in stage1_results
     ])
 
     stage2_text = "\n\n".join([
-        f"Model: {result['model']}\nRanking: {result['ranking']}"
+        f"Model: {format_model_label(result)}\nRanking: {result['ranking']}"
         for result in stage2_results
     ])
 
@@ -275,21 +319,23 @@ def parse_ranking_from_text(ranking_text: str) -> List[str]:
 
 def calculate_aggregate_rankings(
     stage2_results: List[Dict[str, Any]],
-    label_to_model: Dict[str, str]
+    label_to_model: Dict[str, Any]
 ) -> List[Dict[str, Any]]:
     """
     Calculate aggregate rankings across all models.
 
     Args:
         stage2_results: Rankings from each model
-        label_to_model: Mapping from anonymous labels to model names
+        label_to_model: Mapping from anonymous labels to model info (with 'model' and 'instance')
 
     Returns:
-        List of dicts with model name and average rank, sorted best to worst
+        List of dicts with model name, instance, and average rank, sorted best to worst.
+        When DUPLICATE_INSTANCES is enabled, each model+instance combination is ranked separately.
     """
     from collections import defaultdict
 
-    # Track positions for each model
+    # Track positions for each model+instance combination
+    # Key is (model, instance) tuple
     model_positions = defaultdict(list)
 
     for ranking in stage2_results:
@@ -300,16 +346,22 @@ def calculate_aggregate_rankings(
 
         for position, label in enumerate(parsed_ranking, start=1):
             if label in label_to_model:
-                model_name = label_to_model[label]
-                model_positions[model_name].append(position)
+                model_info = label_to_model[label]
+                # Handle both old format (string) and new format (dict with model/instance)
+                if isinstance(model_info, dict):
+                    key = (model_info['model'], model_info.get('instance', 1))
+                else:
+                    key = (model_info, 1)
+                model_positions[key].append(position)
 
-    # Calculate average position for each model
+    # Calculate average position for each model+instance
     aggregate = []
-    for model, positions in model_positions.items():
+    for (model, instance), positions in model_positions.items():
         if positions:
             avg_rank = sum(positions) / len(positions)
             aggregate.append({
                 "model": model,
+                "instance": instance,
                 "average_rank": round(avg_rank, 2),
                 "rankings_count": len(positions)
             })

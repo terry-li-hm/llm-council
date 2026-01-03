@@ -103,6 +103,8 @@ async def query_models_parallel(
 
     Returns:
         Dict mapping model identifier to response dict (or None if failed)
+        Note: If duplicate models exist in the list, only the last response is kept.
+        Use query_models_parallel_list for duplicate model support.
     """
     import asyncio
 
@@ -120,3 +122,41 @@ async def query_models_parallel(
 
     # Map models to their responses
     return {model: response for model, response in zip(models, responses)}
+
+
+async def query_models_parallel_list(
+    models: List[str],
+    messages: List[Dict[str, str]],
+    enable_thinking: bool = False
+) -> List[tuple]:
+    """
+    Query multiple models in parallel, returning results as a list.
+
+    This version supports duplicate models in the input list, unlike
+    query_models_parallel which uses a dict and loses duplicates.
+
+    Args:
+        models: List of OpenRouter model identifiers (duplicates allowed)
+        messages: List of message dicts to send to each model
+        enable_thinking: Whether to enable extended thinking mode
+
+    Returns:
+        List of (model, response) tuples in the same order as input models.
+        Response is None if the query failed.
+    """
+    import asyncio
+
+    # Increase timeout when thinking is enabled (reasoning takes longer)
+    timeout = 300.0 if enable_thinking else 120.0
+
+    # Create tasks for all models
+    tasks = [
+        query_model(model, messages, timeout=timeout, enable_thinking=enable_thinking)
+        for model in models
+    ]
+
+    # Wait for all to complete
+    responses = await asyncio.gather(*tasks)
+
+    # Return as list of tuples to preserve order and handle duplicates
+    return list(zip(models, responses))
