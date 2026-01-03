@@ -182,3 +182,101 @@
   color: var(--thinking-text);
   font-size: 14px;
 }
+
+/* Mobile styles */
+@media (max-width: 768px) {
+  .stage2 {
+    padding: 12px;
+  }
+
+  .stage-description {
+    font-size: 12px;
+  }
+
+  .aggregate-rankings {
+    padding: 12px;
+    margin-bottom: 16px;
+  }
+
+  .aggregate-rankings h4 {
+    font-size: 14px;
+  }
+
+  .aggregate-item {
+    padding: 8px;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  .rank-position {
+    font-size: 14px;
+    min-width: 28px;
+  }
+
+  .rank-model {
+    font-size: 12px;
+    flex: 1;
+    min-width: 0;
+    word-break: break-all;
+  }
+
+  .rank-score {
+    font-size: 11px;
+    width: 100%;
+    margin-left: 36px;
+  }
+
+  .stage2 .tabs {
+    gap: 6px;
+    margin-bottom: 12px;
+  }
+
+  .stage2 .tab {
+    padding: 10px 12px;
+    font-size: 12px;
+    max-width: 120px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .stage2 .tab-content {
+    padding: 12px;
+    margin-bottom: 16px;
+  }
+
+  .ranking-model {
+    font-size: 11px;
+    word-break: break-all;
+  }
+
+  .ranking-content {
+    font-size: 13px;
+  }
+
+  .parsed-ranking {
+    margin-top: 12px;
+    padding-top: 12px;
+  }
+
+  .parsed-ranking ol {
+    padding-left: 20px;
+  }
+
+  .parsed-ranking li {
+    font-size: 12px;
+    word-break: break-all;
+  }
+
+  .stage2 h4 {
+    font-size: 13px;
+  }
+
+  .stage2 .thinking-section summary {
+    font-size: 12px;
+  }
+
+  .stage2 .thinking-content {
+    font-size: 13px;
+  }
+}

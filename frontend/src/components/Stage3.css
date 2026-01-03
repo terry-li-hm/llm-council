@@ -53,3 +53,31 @@
   color: var(--thinking-text);
   font-size: 14px;
 }
+
+/* Mobile styles */
+@media (max-width: 768px) {
+  .stage3 {
+    margin: 16px 0;
+    padding: 12px;
+  }
+
+  .final-response {
+    padding: 12px;
+  }
+
+  .chairman-label {
+    font-size: 11px;
+  }
+
+  .final-text {
+    font-size: 14px;
+  }
+
+  .thinking-section summary {
+    font-size: 12px;
+  }
+
+  .thinking-content {
+    font-size: 13px;
+  }
+}

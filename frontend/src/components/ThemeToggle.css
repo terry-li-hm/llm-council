@@ -22,3 +22,11 @@
 .theme-toggle svg {
   display: block;
 }
+
+/* Mobile styles - larger touch target */
+@media (max-width: 768px) {
+  .theme-toggle {
+    width: 44px;
+    height: 44px;
+  }
+}

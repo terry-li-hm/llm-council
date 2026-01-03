@@ -10,6 +10,7 @@ function App() {
   const [currentConversationId, setCurrentConversationId] = useState(null);
   const [currentConversation, setCurrentConversation] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const { theme, toggleTheme } = useTheme();
 
   // Load conversations on mount
@@ -57,6 +58,7 @@ function App() {
 
   const handleSelectConversation = (id) => {
     setCurrentConversationId(id);
+    setSidebarOpen(false); // Close sidebar on mobile after selection
   };
 
   const handleSendMessage = async (content) => {
@@ -210,6 +212,28 @@ function App() {
 
   return (
     <div className="app">
+      {/* Mobile header with hamburger menu */}
+      <div className="mobile-header">
+        <button
+          className="hamburger-btn"
+          onClick={() => setSidebarOpen(true)}
+          aria-label="Open menu"
+        >
+          <span></span>
+          <span></span>
+          <span></span>
+        </button>
+        <h1 className="mobile-title">LLM Council</h1>
+      </div>
+
+      {/* Overlay for mobile sidebar */}
+      {sidebarOpen && (
+        <div
+          className="sidebar-overlay"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
+
       <Sidebar
         conversations={conversations}
         currentConversationId={currentConversationId}
@@ -217,6 +241,8 @@ function App() {
         onNewConversation={handleNewConversation}
         theme={theme}
         onToggleTheme={toggleTheme}
+        isOpen={sidebarOpen}
+        onClose={() => setSidebarOpen(false)}
       />
       <ChatInterface
         conversation={currentConversation}

@@ -129,13 +129,17 @@ body {
   margin: 0;
   min-width: 320px;
   min-height: 100vh;
+  min-height: 100dvh; /* Dynamic viewport height for mobile */
   background: var(--bg-secondary);
   color: var(--text-primary);
   transition: background-color 0.2s, color 0.2s;
+  /* Prevent iOS overscroll bounce */
+  overscroll-behavior: none;
 }
 
 #root {
   height: 100vh;
+  height: 100dvh; /* Dynamic viewport height for mobile */
   width: 100vw;
   overflow: hidden;
 }

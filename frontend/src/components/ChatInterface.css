@@ -3,8 +3,10 @@
   display: flex;
   flex-direction: column;
   height: 100vh;
+  height: 100dvh;
   background: var(--bg-primary);
   transition: background-color 0.2s;
+  min-width: 0; /* Allow flex shrinking */
 }
 
 .messages-container {
@@ -167,4 +169,59 @@
   cursor: not-allowed;
   background: var(--text-muted);
   border-color: var(--text-muted);
+}
+
+/* Mobile styles */
+@media (max-width: 768px) {
+  .chat-interface {
+    height: auto;
+    flex: 1;
+  }
+
+  .messages-container {
+    padding: 16px;
+  }
+
+  .empty-state h2 {
+    font-size: 20px;
+  }
+
+  .empty-state p {
+    font-size: 14px;
+    padding: 0 16px;
+  }
+
+  .message-group {
+    margin-bottom: 24px;
+  }
+
+  .user-message .message-content {
+    max-width: 100%;
+    padding: 12px;
+  }
+
+  .input-form {
+    padding: 12px;
+    gap: 8px;
+  }
+
+  .message-input {
+    padding: 12px;
+    font-size: 16px; /* Prevents iOS zoom on focus */
+    min-height: 60px;
+  }
+
+  .send-button {
+    padding: 12px 20px;
+    font-size: 15px;
+  }
+
+  .stage-loading {
+    padding: 12px;
+    font-size: 13px;
+  }
+
+  .stage-loading span {
+    flex: 1;
+  }
 }
