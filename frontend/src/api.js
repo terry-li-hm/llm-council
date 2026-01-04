@@ -180,8 +180,8 @@ export const api = {
           try {
             const event = JSON.parse(data);
             onEvent(event.type, event);
-          } catch (e) {
-            console.error('Failed to parse SSE event:', e);
+          } catch {
+            // Skip malformed SSE events
           }
         }
       }

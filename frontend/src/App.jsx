@@ -44,8 +44,8 @@ function App() {
     try {
       const status = await api.getAuthStatus();
       setAuthStatus(status);
-    } catch (error) {
-      console.error('Failed to check auth status:', error);
+    } catch {
+      // Fall back to requiring auth on error
       setAuthStatus({ authenticated: false, auth_enabled: true });
     } finally {
       setAuthLoading(false);
@@ -55,13 +55,13 @@ function App() {
   const handleLogout = async () => {
     try {
       await api.logout();
-      setAuthStatus({ authenticated: false, auth_enabled: true });
-      setConversations([]);
-      setCurrentConversation(null);
-      setCurrentConversationId(null);
-    } catch (error) {
-      console.error('Failed to logout:', error);
+    } catch {
+      // Logout failed, but clear local state anyway
     }
+    setAuthStatus({ authenticated: false, auth_enabled: true });
+    setConversations([]);
+    setCurrentConversation(null);
+    setCurrentConversationId(null);
   };
 
   // Load conversations and models on mount (only if authenticated)
@@ -81,8 +81,8 @@ function App() {
     try {
       const models = await api.getModels();
       setAvailableModels(models);
-    } catch (error) {
-      console.error('Failed to load models:', error);
+    } catch {
+      // Models will remain empty; settings will show no options
     }
   };
 
@@ -98,8 +98,8 @@ function App() {
     try {
       const convs = await api.listConversations();
       setConversations(convs);
-    } catch (error) {
-      console.error('Failed to load conversations:', error);
+    } catch {
+      // Conversations will remain empty
     }
   };
 
@@ -107,8 +107,8 @@ function App() {
     try {
       const conv = await api.getConversation(id);
       setCurrentConversation(conv);
-    } catch (error) {
-      console.error('Failed to load conversation:', error);
+    } catch {
+      // Conversation will remain null
     }
   };
 
@@ -120,8 +120,8 @@ function App() {
         ...conversations,
       ]);
       setCurrentConversationId(newConv.id);
-    } catch (error) {
-      console.error('Failed to create conversation:', error);
+    } catch {
+      // Failed to create conversation; user can retry
     }
   };
 
@@ -234,12 +234,12 @@ function App() {
               break;
 
             case 'error':
-              console.error('Stream error:', event.message);
+              // Stream error occurred; stop loading
               setIsLoading(false);
               break;
 
             default:
-              console.log('Unknown event type:', eventType);
+              // Ignore unknown event types
           }
         }, duplicateModels);
       } else {
@@ -268,8 +268,7 @@ function App() {
 
         setIsLoading(false);
       }
-    } catch (error) {
-      console.error('Failed to send message:', error);
+    } catch {
       // Remove optimistic messages on error
       setCurrentConversation((prev) => ({
         ...prev,
