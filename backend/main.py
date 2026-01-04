@@ -10,7 +10,7 @@ import json
 import asyncio
 
 from . import storage
-from .config import CORS_ORIGINS
+from .config import CORS_ORIGINS, COUNCIL_MODELS
 from .council import run_full_council, generate_conversation_title, stage1_collect_responses, stage2_collect_rankings, stage3_synthesize_final, calculate_aggregate_rankings, chairman_followup
 from .auth import router as auth_router, verify_auth, auth_enabled
 
@@ -37,6 +37,7 @@ class CreateConversationRequest(BaseModel):
 class SendMessageRequest(BaseModel):
     """Request to send a message in a conversation."""
     content: str
+    duplicate_models: List[str] = []  # List of model identifiers to run twice
 
 
 class ConversationMetadata(BaseModel):
@@ -59,6 +60,12 @@ class Conversation(BaseModel):
 async def root():
     """Health check endpoint."""
     return {"status": "ok", "service": "LLM Council API"}
+
+
+@app.get("/api/config/models")
+async def get_models():
+    """Get the list of available council models."""
+    return {"models": COUNCIL_MODELS}
 
 
 @app.get("/api/conversations", response_model=List[ConversationMetadata])
@@ -107,7 +114,8 @@ async def send_message(conversation_id: str, body: SendMessageRequest, request: 
         storage.update_conversation_title(conversation_id, title)
 
         stage1_results, stage2_results, stage3_result, metadata = await run_full_council(
-            body.content
+            body.content,
+            duplicate_models=body.duplicate_models
         )
 
         storage.add_assistant_message(
@@ -168,18 +176,18 @@ async def send_message_stream(conversation_id: str, body: SendMessageRequest, re
 
             # Stage 1: Collect responses
             yield f"data: {json.dumps({'type': 'stage1_start'})}\n\n"
-            stage1_results = await stage1_collect_responses(body.content)
+            stage1_results = await stage1_collect_responses(body.content, duplicate_models=body.duplicate_models)
             yield f"data: {json.dumps({'type': 'stage1_complete', 'data': stage1_results})}\n\n"
 
             # Stage 2: Collect rankings
             yield f"data: {json.dumps({'type': 'stage2_start'})}\n\n"
-            stage2_results, label_to_model = await stage2_collect_rankings(body.content, stage1_results)
+            stage2_results, label_to_model = await stage2_collect_rankings(body.content, stage1_results, duplicate_models=body.duplicate_models)
             aggregate_rankings = calculate_aggregate_rankings(stage2_results, label_to_model)
             yield f"data: {json.dumps({'type': 'stage2_complete', 'data': stage2_results, 'metadata': {'label_to_model': label_to_model, 'aggregate_rankings': aggregate_rankings}})}\n\n"
 
             # Stage 3: Synthesize final answer
             yield f"data: {json.dumps({'type': 'stage3_start'})}\n\n"
-            stage3_result = await stage3_synthesize_final(body.content, stage1_results, stage2_results)
+            stage3_result = await stage3_synthesize_final(body.content, stage1_results, stage2_results, duplicate_models=body.duplicate_models)
             yield f"data: {json.dumps({'type': 'stage3_complete', 'data': stage3_result})}\n\n"
 
             # Wait for title generation if it was started

@@ -1,10 +1,14 @@
 import { useState, useEffect } from 'react';
 import Sidebar from './components/Sidebar';
 import ChatInterface from './components/ChatInterface';
+import Settings from './components/Settings';
 import Login from './components/Login';
 import { api } from './api';
 import { useTheme } from './utils/useTheme';
 import './App.css';
+
+// LocalStorage key for persisting settings
+const DUPLICATE_MODELS_KEY = 'llm-council-duplicate-models';
 
 function App() {
   const [conversations, setConversations] = useState([]);
@@ -13,6 +17,19 @@ function App() {
   const [isLoading, setIsLoading] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const { theme, toggleTheme } = useTheme();
+
+  // Settings state
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [availableModels, setAvailableModels] = useState([]);
+  const [duplicateModels, setDuplicateModels] = useState(() => {
+    // Load from localStorage on init
+    try {
+      const saved = localStorage.getItem(DUPLICATE_MODELS_KEY);
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
+  });
 
   // Auth state
   const [authStatus, setAuthStatus] = useState(null);
@@ -47,12 +64,28 @@ function App() {
     }
   };
 
-  // Load conversations on mount (only if authenticated)
+  // Load conversations and models on mount (only if authenticated)
   useEffect(() => {
     if (authStatus?.authenticated || authStatus?.auth_enabled === false) {
       loadConversations();
+      loadModels();
     }
   }, [authStatus]);
+
+  // Save duplicate models to localStorage when changed
+  useEffect(() => {
+    localStorage.setItem(DUPLICATE_MODELS_KEY, JSON.stringify(duplicateModels));
+  }, [duplicateModels]);
+
+  const loadModels = async () => {
+    try {
+      const models = await api.getModels();
+      setAvailableModels(models);
+    } catch (error) {
+      console.error('Failed to load models:', error);
+    }
+  };
+
 
   // Load conversation details when selected
   useEffect(() => {
@@ -208,7 +241,7 @@ function App() {
             default:
               console.log('Unknown event type:', eventType);
           }
-        });
+        }, duplicateModels);
       } else {
         // Follow-up: use non-streaming endpoint (faster, simpler)
         const assistantMessage = {
@@ -223,7 +256,7 @@ function App() {
           messages: [...prev.messages, assistantMessage],
         }));
 
-        const result = await api.sendMessage(currentConversationId, content);
+        const result = await api.sendMessage(currentConversationId, content, duplicateModels);
 
         setCurrentConversation((prev) => {
           const messages = [...prev.messages];
@@ -289,10 +322,12 @@ function App() {
         currentConversationId={currentConversationId}
         onSelectConversation={handleSelectConversation}
         onNewConversation={handleNewConversation}
+        onOpenSettings={() => setSettingsOpen(true)}
         theme={theme}
         onToggleTheme={toggleTheme}
         isOpen={sidebarOpen}
         onClose={() => setSidebarOpen(false)}
+        duplicateModelsCount={duplicateModels.length}
         username={authStatus?.username}
         authEnabled={authStatus?.auth_enabled}
         onLogout={handleLogout}
@@ -301,6 +336,13 @@ function App() {
         conversation={currentConversation}
         onSendMessage={handleSendMessage}
         isLoading={isLoading}
+      />
+      <Settings
+        isOpen={settingsOpen}
+        onClose={() => setSettingsOpen(false)}
+        models={availableModels}
+        duplicateModels={duplicateModels}
+        onDuplicateModelsChange={setDuplicateModels}
       />
     </div>
   );
