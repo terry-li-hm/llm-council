@@ -180,6 +180,9 @@
 
   .messages-container {
     padding: 16px;
+    /* Safe area padding for notched phones */
+    padding-left: max(16px, env(safe-area-inset-left));
+    padding-right: max(16px, env(safe-area-inset-right));
   }
 
   .empty-state h2 {
@@ -203,6 +206,10 @@
   .input-form {
     padding: 12px;
     gap: 8px;
+    /* Safe area padding for notched phones */
+    padding-bottom: max(12px, env(safe-area-inset-bottom));
+    padding-left: max(12px, env(safe-area-inset-left));
+    padding-right: max(12px, env(safe-area-inset-right));
   }
 
   .message-input {
@@ -214,6 +221,8 @@
   .send-button {
     padding: 12px 20px;
     font-size: 15px;
+    /* Minimum touch target */
+    min-height: 44px;
   }
 
   .stage-loading {
@@ -223,5 +232,38 @@
 
   .stage-loading span {
     flex: 1;
+  }
+
+  /* Landscape mobile: compact layout */
+  @media (orientation: landscape) and (max-height: 500px) {
+    .messages-container {
+      padding: 12px;
+      padding-left: max(12px, env(safe-area-inset-left));
+      padding-right: max(12px, env(safe-area-inset-right));
+    }
+
+    .message-group {
+      margin-bottom: 16px;
+    }
+
+    .input-form {
+      padding: 8px 12px;
+      padding-bottom: max(8px, env(safe-area-inset-bottom));
+    }
+
+    .message-input {
+      min-height: 44px;
+      padding: 10px;
+    }
+
+    .send-button {
+      padding: 10px 16px;
+      min-height: 40px;
+    }
+
+    .stage-loading {
+      padding: 8px;
+      margin: 8px 0;
+    }
   }
 }
