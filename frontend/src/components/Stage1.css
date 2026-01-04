@@ -101,4 +101,32 @@
     font-size: 11px;
     word-break: break-all;
   }
+
+  /* Landscape mobile: even more compact */
+  @media (orientation: landscape) and (max-height: 500px) {
+    .stage {
+      margin: 12px 0;
+      padding: 10px;
+    }
+
+    .stage-title {
+      font-size: 13px;
+      margin-bottom: 8px;
+    }
+
+    .tabs {
+      gap: 4px;
+      margin-bottom: 8px;
+    }
+
+    .tab {
+      padding: 8px 10px;
+      font-size: 11px;
+      max-width: 100px;
+    }
+
+    .tab-content {
+      padding: 10px;
+    }
+  }
 }

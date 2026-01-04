@@ -279,4 +279,50 @@
   .stage2 .thinking-content {
     font-size: 13px;
   }
+
+  /* Landscape mobile: compact layout */
+  @media (orientation: landscape) and (max-height: 500px) {
+    .stage2 {
+      padding: 10px;
+    }
+
+    .aggregate-rankings {
+      padding: 10px;
+      margin-bottom: 12px;
+    }
+
+    .aggregate-rankings h4 {
+      font-size: 13px;
+      margin-bottom: 8px;
+    }
+
+    .aggregate-item {
+      padding: 6px 8px;
+    }
+
+    .rank-position {
+      font-size: 12px;
+      min-width: 24px;
+    }
+
+    .rank-model {
+      font-size: 11px;
+    }
+
+    .stage2 .tabs {
+      gap: 4px;
+      margin-bottom: 8px;
+    }
+
+    .stage2 .tab {
+      padding: 8px 10px;
+      font-size: 11px;
+      max-width: 100px;
+    }
+
+    .stage2 .tab-content {
+      padding: 10px;
+      margin-bottom: 12px;
+    }
+  }
 }

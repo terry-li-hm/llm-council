@@ -95,4 +95,30 @@
     background: rgba(0, 0, 0, 0.5);
     z-index: 998;
   }
+
+  /* Landscape mobile: use more horizontal space */
+  @media (orientation: landscape) and (max-height: 500px) {
+    .mobile-header {
+      padding: 8px 16px;
+      padding-left: max(16px, env(safe-area-inset-left));
+      padding-right: max(16px, env(safe-area-inset-right));
+    }
+
+    .mobile-title {
+      font-size: 16px;
+    }
+
+    .hamburger-btn {
+      width: 40px;
+      height: 40px;
+      padding: 8px;
+    }
+  }
+}
+
+/* Tablet breakpoint (769px - 1024px) */
+@media (min-width: 769px) and (max-width: 1024px) {
+  .app {
+    /* Show sidebar but narrower */
+  }
 }
